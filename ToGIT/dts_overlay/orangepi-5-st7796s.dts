@@ -1,0 +1,110 @@
+/dts-v1/;
+/plugin/;
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/pinctrl/rockchip.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+/ {
+    compatible = "rockchip,rk3588s-orangepi-5", "rockchip,rk3588";
+
+  fragment@0 {
+    target = <&pinctrl>;
+
+    __overlay__ {
+      spi4 {
+        st7796_cs: st7796_cs {
+          rockchip,pins =
+          <1 RK_PC4 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+
+        st7796_tscs: st7796_tscs {
+          rockchip,pins =
+          <1 RK_PD3 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+
+        st7796_pins: st7796_pins {
+          rockchip,pins =
+          <1 RK_PD2 RK_FUNC_GPIO &pcfg_output_low_pull_down>,
+          <2 RK_PD4 RK_FUNC_GPIO &pcfg_pull_none>,
+          <0 RK_PD4 RK_FUNC_GPIO &pcfg_output_low_pull_down>;
+        };
+
+        st7796_tsirq: st7796_tsirq {
+          rockchip,pins =
+          <4 RK_PA3 RK_FUNC_GPIO &pcfg_pull_none>;
+        };
+      };
+
+      can2 {
+        status = "disabled";
+      };
+    };
+  };
+
+  fragment@1 {
+    target = <&spi4>;
+    __overlay__ {
+      status = "okay";
+
+      spidev@0{
+          status = "disabled";
+      };
+      spidev@1{
+          status = "disabled";
+      };
+    };
+  };
+
+  fragment@2 {
+    target = <&spi4>;
+    __overlay__ {
+      pinctrl-names = "default";
+      pinctrl-0 = <&st7796_cs &st7796_tscs &spi4m0_pins>;
+      num-cs = <2>;
+      cs-gpios = <&gpio1 RK_PC4 0>, <&gpio1 RK_PD3 0>;
+      status = "okay";
+      #address-cells = <1>;
+      #size-cells = <0>;
+      spi-max-frequency = <40000000>;
+
+      st7796: st7796s@0{
+        compatible = "sitronix,st7796s";
+        /*compatible = "";*/
+        pinctrl-names = "default";
+        pinctrl-0 = <&st7796_pins>;
+        /* CS 0 */
+        reg = <0>;
+        spi-max-frequency = <15000000>;
+        rotate = <270>;
+        fps = <30>;
+        buswidth = <8>;
+        txbuflen = <32768>;
+        reset-gpios = <&gpio1 RK_PD2 1>;
+        dc-gpios = <&gpio2 RK_PD4 0>;
+        led-gpios = <&gpio0 RK_PD4 0>;
+        debug = <0>;
+      };
+
+      st7796_ts: st7796s@1 {
+        compatible = "ti,ads7846";
+        /* CS1 */
+        reg = <1>;
+        status = "okay";
+        pinctrl-names = "default";
+        pinctrl-0 = <&st7796_tsirq>;
+        spi-max-frequency = <1000000>;
+        interrupt-parent = <&gpio4>;
+        interrupts = <RK_PA3 IRQ_TYPE_EDGE_FALLING>; /* GPIO0 D5 IRQ_TYPE_EDGE_FALLING */
+        pendown-gpio = <&gpio4 RK_PA3 GPIO_ACTIVE_LOW>; /* GPIO0 D5 */
+        ti,keep-vref-on = <1>;
+        ti,x-min = /bits/ 16 <00>;
+        ti,x-max = /bits/ 16 <0xFFF>;
+        ti,y-min = /bits/ 16 <00>;
+        ti,y-max = /bits/ 16 <0xFFF>;
+        ti,x-plate-ohms = /bits/ 16 <60>;
+        ti,pressure-max = /bits/ 16 <255>;
+        ti,swap-xy = <0>;
+      };
+
+    };
+  };
+};
